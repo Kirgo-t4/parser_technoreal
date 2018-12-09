@@ -19,12 +19,15 @@ def get_cathegories(html):
     for cb in c_block:
         if (cb.find("h3") is not None) and (cb.find("h3").text == "Каталог ТЕХНОРЕАЛ"):
             group_links = cb.select("li")
+            cur_group = None
             for link in group_links:
-                if link.a.has_attr('href'):
-                    if (link.a['href'].rindex('/') > 0):
-                        cathegories.append({'name':link.a.text, 'link': BASE_LINK + link.a['href']})
-                        print(link.a['href'])
-                        print(link.a.text)
+                if repr(link).find("<ul>") == -1:
+                    if link.a.has_attr('href'):
+                        cathegories.append({'name':link.a.text, 'link': BASE_LINK + link.a['href'], 'isGroup':False, 'group': cur_group})
+                else:
+                    cur_group = link.a.text
+                    if link.a.has_attr('href'):
+                        cathegories.append({'name':cur_group, 'link': BASE_LINK + link.a['href'], 'isGroup':True, 'group': None})
     return cathegories
 
 def get_goods(html):
@@ -75,14 +78,15 @@ def print_in_csv_file(filename,keys,list_disct_values):
 def main():
     ch_goods = []
     ch_keys = set()
-    for cathegory in get_cathegories(get_html(BASE_LINK))[:1]:
+    for cathegory in get_cathegories(get_html(BASE_LINK))[:2]:
         print(cathegory)
-        goods = get_goods(get_html(cathegory['link']))
-        for good in goods:
-            print(good)
-            ch = get_characteristiks_of_good(good['name'],cathegory['name'],get_html(good['link']))
-            ch_goods.append(ch)
-            ch_keys = ch_keys.union(set(list(ch.keys())))
+        if not cathegory['isGroup']:
+            goods = get_goods(get_html(cathegory['link']))
+            for good in goods:
+                print(good)
+                ch = get_characteristiks_of_good(good['name'],cathegory['name'],get_html(good['link']))
+                ch_goods.append(ch)
+                ch_keys = ch_keys.union(set(list(ch.keys())))
     print(len(ch_keys))
 
     list_ch_keys = make_common_list_of_headers(ch_keys)
